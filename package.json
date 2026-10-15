@@ -1,4 +1,3 @@
-
 {
   "name": "synclist",
   "version": "1.0.0",
@@ -6,5 +5,8 @@
   "workspaces": [
     "packages/*",
     "apps/*"
-  ]
+  ],
+  "devDependencies": {
+    "vitest": "^5.0.4"
+  }
 }
