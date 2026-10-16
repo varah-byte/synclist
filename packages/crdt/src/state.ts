@@ -81,9 +81,14 @@ export type VisibleItem = { id: string } & Record<string, unknown>;
 export function visibleItems(s: State): VisibleItem[] {
   return Object.values(s.items)
     .filter((i) => !i.deleted)
-    .map((i) => ({
+    .map((i): VisibleItem => ({
       id: i.id,
       ...Object.fromEntries(Object.entries(i.fields).map(([k, r]) => [k, r.value])),
     }))
-    .sort((a, b) => a.id.localeCompare(b.id));
+    .sort((a, b) => {
+      const pa = typeof a.pos === "number" ? a.pos : Infinity;
+      const pb = typeof b.pos === "number" ? b.pos : Infinity;
+      if (pa !== pb) return pa < pb ? -1 : 1;
+      return a.id.localeCompare(b.id);
+    });
 }

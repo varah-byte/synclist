@@ -47,9 +47,12 @@ export default function App() {
     setMsg(`Synced: sent ${r.sent}, received ${r.received}`); refresh();
   });
 
-  const add = async () => {
+    const add = async () => {
     if (!name.trim()) return;
-    await createOp(groupId, { type: "add", itemId: crypto.randomUUID(), value: name.trim() });
+    const maxPos = items.reduce((m, i) => Math.max(m, typeof i.pos === "number" ? i.pos : 0), 0);
+    const id = crypto.randomUUID();
+    await createOp(groupId, { type: "add", itemId: id, value: name.trim() });
+    await createOp(groupId, { type: "set", itemId: id, field: "pos", value: maxPos + 1 });
     setName(""); refresh(); autoSync();
   };
   const remove = async (id: string) => { await createOp(groupId, { type: "delete", itemId: id }); refresh();autoSync(); };
