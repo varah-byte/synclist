@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { createOp, loadItems } from "./store";
-import { api, syncGroup } from "./sync";
+import { api, syncGroup,connectLive } from "./sync";
 
 export default function App() {
   const [token, setToken] = useState(localStorage.getItem("token") ?? "");
@@ -15,7 +15,17 @@ export default function App() {
 
   const refresh = async () => groupId && setItems(await loadItems(groupId));
   useEffect(() => { refresh(); }, [groupId]);
+    useEffect(() => {
+    if (!token || !groupId) return;
+    const close = connectLive(groupId, token, refresh);
+    const onOnline = () => syncGroup(groupId, token).then(refresh).catch(() => {});
+    window.addEventListener("online", onOnline);
+    return () => { close(); window.removeEventListener("online", onOnline); };
+  }, [token, groupId]);
 
+  const autoSync = () => {
+    if (token && groupId) syncGroup(groupId, token).then(refresh).catch(() => {});
+  };
   const wrap = async (f: () => Promise<void>) => {
     try { await f(); } catch (e: any) { setMsg("Error: " + e.message); }
   };
@@ -40,12 +50,12 @@ export default function App() {
   const add = async () => {
     if (!name.trim()) return;
     await createOp(groupId, { type: "add", itemId: crypto.randomUUID(), value: name.trim() });
-    setName(""); refresh();
+    setName(""); refresh(); autoSync();
   };
-  const remove = async (id: string) => { await createOp(groupId, { type: "delete", itemId: id }); refresh(); };
+  const remove = async (id: string) => { await createOp(groupId, { type: "delete", itemId: id }); refresh();autoSync(); };
   const rename = async (id: string) => {
     const v = prompt("New name?");
-    if (v) { await createOp(groupId, { type: "set", itemId: id, field: "name", value: v }); refresh(); }
+    if (v) { await createOp(groupId, { type: "set", itemId: id, field: "name", value: v }); refresh();autoSync(); }
   };
 
   if (!token) return (

@@ -3,6 +3,7 @@ import { db } from "./db";
 import { getOutbox, clearOutbox, saveRemoteOps } from "./store";
 
 export const API = "http://localhost:3000";
+const WS = "ws://localhost:3000";
 
 export async function api(path: string, token: string | null, body?: unknown) {
   const res = await fetch(API + path, {
@@ -18,7 +19,6 @@ export async function api(path: string, token: string | null, body?: unknown) {
   return data;
 }
 
-// version vector: deviceId -> highest seq stored locally
 async function localVv(groupId: string): Promise<Record<string, number>> {
   const all = await db.ops.where("groupId").equals(groupId).toArray();
   const vv: Record<string, number> = {};
@@ -26,14 +26,41 @@ async function localVv(groupId: string): Promise<Record<string, number>> {
   return vv;
 }
 
+let running = false;
 export async function syncGroup(groupId: string, token: string) {
-  const outbox = await getOutbox(groupId);
-  const ops: Op[] = outbox.map(({ groupId: _g, ...op }) => op);
-  const vv = await localVv(groupId);
+  if (running) return { sent: 0, received: 0 };
+  running = true;
+  try {
+    const outbox = await getOutbox(groupId);
+    const ops: Op[] = outbox.map(({ groupId: _g, ...op }) => op);
+    const vv = await localVv(groupId);
+    const res = await api(`/groups/${groupId}/sync`, token, { ops, vv });
+    await saveRemoteOps(groupId, res.ops as Op[]);
+    await clearOutbox(groupId, outbox.map((o) => o.opId));
+    return { sent: ops.length, received: (res.ops as Op[]).length };
+  } finally {
+    running = false;
+  }
+}
 
-  const res = await api(`/groups/${groupId}/sync`, token, { ops, vv });
+// Open the live connection. Returns a function that closes it.
+export function connectLive(groupId: string, token: string, onChange: () => void) {
+  let ws: WebSocket | null = null;
+  let closed = false;
+  let retry: ReturnType<typeof setTimeout>;
 
-  await saveRemoteOps(groupId, res.ops as Op[]);
-  await clearOutbox(groupId, outbox.map((o) => o.opId));
-  return { sent: ops.length, received: (res.ops as Op[]).length };
+  const open = () => {
+    ws = new WebSocket(`${WS}/groups/${groupId}/subscribe?token=${token}`);
+    ws.onmessage = async (e) => {
+      const m = JSON.parse(e.data);
+      if (m.type === "ops") {
+        await saveRemoteOps(groupId, m.ops as Op[]);
+        onChange();
+      }
+    };
+    ws.onopen = () => { syncGroup(groupId, token).then(onChange).catch(() => {}); };
+    ws.onclose = () => { if (!closed) retry = setTimeout(open, 2000); };
+  };
+  open();
+  return () => { closed = true; clearTimeout(retry); ws?.close(); };
 }
