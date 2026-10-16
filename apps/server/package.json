@@ -18,12 +18,14 @@
     "@types/pg": "^8.23.1",
     "@types/ws": "^8.18.2",
     "tsx": "^4.23.15",
-    "typescript": "^7.0.2"
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.5"
   },
   "dependencies": {
     "@fastify/cors": "^11.3.1",
     "@fastify/jwt": "^10.2.4",
     "@fastify/websocket": "^11.3.4",
+    "@synclist/crdt": "*",
     "bcryptjs": "^3.0.3",
     "dotenv": "^18.0.8",
     "fastify": "^5.12.7",
