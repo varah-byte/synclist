@@ -1,5 +1,9 @@
 {
   "devDependencies": {
     "fast-check": "^4.10.2"
-  }
+  },
+  "name": "@synclist/crdt",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "type": "module"
 }
