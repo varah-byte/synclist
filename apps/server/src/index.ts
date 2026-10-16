@@ -3,10 +3,12 @@ import Fastify from "fastify";
 import jwt from "@fastify/jwt";
 import { pool } from "./db.js";
 import { authRoutes, requireAuth } from "./auth.js";
+import { groupRoutes } from "./groups.js";
 
 const app = Fastify({ logger: true });
 await app.register(jwt, { secret: process.env.JWT_SECRET ?? "dev-secret" });
 await app.register(authRoutes);
+await app.register(groupRoutes);
 
 app.get("/health", async () => {
   await pool.query("SELECT 1");
