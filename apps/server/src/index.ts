@@ -4,11 +4,13 @@ import jwt from "@fastify/jwt";
 import { pool } from "./db.js";
 import { authRoutes, requireAuth } from "./auth.js";
 import { groupRoutes } from "./groups.js";
+import { realtimeRoutes } from "./realtime.js";
 import { syncRoutes } from "./sync.js";
 
 const app = Fastify({ logger: true });
 await app.register(jwt, { secret: process.env.JWT_SECRET ?? "dev-secret" });
 await app.register(authRoutes);
+await app.register(realtimeRoutes);
 await app.register(groupRoutes);
 await app.register(syncRoutes);
 

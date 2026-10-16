@@ -2,6 +2,7 @@ import type { FastifyInstance } from "fastify";
 import { pool } from "./db.js";
 import { requireAuth } from "./auth.js";
 import { isMember } from "./groups.js";
+import { broadcast } from "./realtime.js";
 
 interface OpIn {
   opId: string;
@@ -70,6 +71,8 @@ export async function syncRoutes(app: FastifyInstance) {
       );
       if (res.rowCount) inserted.push(o);
     }
+
+    broadcast(id, inserted.map((o) => ({ ...o })));
 
     // 2. Return ops the client lacks
     const { rows } = await pool.query(
