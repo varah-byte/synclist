@@ -32,7 +32,7 @@ export async function createOp(
   partial: Pick<Op, "type" | "itemId" | "field" | "value">
 ): Promise<Op> {
   const deviceId = await getDeviceId();
-  const seq = (await getMeta<number>("seq:" + deviceId, 0)) + 1;
+  const seq = (await getMeta<number>("seq:" + groupId + ":" + deviceId, 0)) + 1;
   const lastHlc = await getMeta<Hlc>("hlc", { wall: 0, counter: 0 });
   const hlc = tickHlc(lastHlc);
 
@@ -42,7 +42,7 @@ export async function createOp(
   await db.transaction("rw", db.ops, db.outbox, db.meta, async () => {
     await db.ops.put(stored);
     await db.outbox.put(stored);
-    await setMeta("seq:" + deviceId, seq);
+    await setMeta("seq:" + groupId + ":" + deviceId, seq);
     await setMeta("hlc", hlc);
   });
   return op;

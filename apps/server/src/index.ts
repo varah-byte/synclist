@@ -1,6 +1,7 @@
 import "dotenv/config";
 import Fastify from "fastify";
 import jwt from "@fastify/jwt";
+import cors from "@fastify/cors";
 import { pool } from "./db.js";
 import { authRoutes, requireAuth } from "./auth.js";
 import { groupRoutes } from "./groups.js";
@@ -8,6 +9,7 @@ import { realtimeRoutes } from "./realtime.js";
 import { syncRoutes } from "./sync.js";
 
 const app = Fastify({ logger: true });
+await app.register(cors, { origin: true });
 await app.register(jwt, { secret: process.env.JWT_SECRET ?? "dev-secret" });
 await app.register(authRoutes);
 await app.register(realtimeRoutes);
