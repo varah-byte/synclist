@@ -4,6 +4,7 @@ import { getOutbox, clearOutbox, saveRemoteOps } from "./store";
 
 export const API = "http://localhost:3000";
 const WS = "ws://localhost:3000";
+export const net = { offline: false };
 
 export async function api(path: string, token: string | null, body?: unknown) {
   const res = await fetch(API + path, {
@@ -29,6 +30,7 @@ async function localVv(groupId: string): Promise<Record<string, number>> {
 let running = false;
 export async function syncGroup(groupId: string, token: string) {
   if (running) return { sent: 0, received: 0 };
+  if (net.offline) return { sent: 0, received: 0 };
   running = true;
   try {
     const outbox = await getOutbox(groupId);
@@ -52,6 +54,7 @@ export function connectLive(groupId: string, token: string, onChange: () => void
   const open = () => {
     ws = new WebSocket(`${WS}/groups/${groupId}/subscribe?token=${token}`);
     ws.onmessage = async (e) => {
+      if (net.offline) return;
       const m = JSON.parse(e.data);
       if (m.type === "ops") {
         await saveRemoteOps(groupId, m.ops as Op[]);

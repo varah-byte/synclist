@@ -58,3 +58,5 @@ export const getOutbox = (groupId: string) =>
 
 export const clearOutbox = (groupId: string, opIds: string[]) =>
   db.outbox.bulkDelete(opIds.map((id) => [groupId, id] as [string, string]));
+export const pendingCount = (groupId: string) =>
+  db.outbox.where("groupId").equals(groupId).count();

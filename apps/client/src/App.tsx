@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { createOp, loadItems } from "./store";
-import { api, syncGroup,connectLive } from "./sync";
+import { createOp, loadItems, pendingCount } from "./store";
+import { api, syncGroup, connectLive, net } from "./sync";
 
 export default function App() {
   const [token, setToken] = useState(localStorage.getItem("token") ?? "");
@@ -12,10 +12,17 @@ export default function App() {
   const [items, setItems] = useState<any[]>([]);
   const [name, setName] = useState("");
   const [msg, setMsg] = useState("");
+  const [offline, setOffline] = useState(false);
+  const [pending, setPending] = useState(0);
 
-  const refresh = async () => groupId && setItems(await loadItems(groupId));
+  const refresh = async () => {
+    if (!groupId) return;
+    setItems(await loadItems(groupId));
+    setPending(await pendingCount(groupId));
+  };
   useEffect(() => { refresh(); }, [groupId]);
-    useEffect(() => {
+
+  useEffect(() => {
     if (!token || !groupId) return;
     const close = connectLive(groupId, token, refresh);
     const onOnline = () => syncGroup(groupId, token).then(refresh).catch(() => {});
@@ -26,6 +33,13 @@ export default function App() {
   const autoSync = () => {
     if (token && groupId) syncGroup(groupId, token).then(refresh).catch(() => {});
   };
+
+  const toggleOffline = () => {
+    net.offline = !net.offline;
+    setOffline(net.offline);
+    if (!net.offline) autoSync();
+  };
+
   const wrap = async (f: () => Promise<void>) => {
     try { await f(); } catch (e: any) { setMsg("Error: " + e.message); }
   };
@@ -47,7 +61,7 @@ export default function App() {
     setMsg(`Synced: sent ${r.sent}, received ${r.received}`); refresh();
   });
 
-    const add = async () => {
+  const add = async () => {
     if (!name.trim()) return;
     const maxPos = items.reduce((m, i) => Math.max(m, typeof i.pos === "number" ? i.pos : 0), 0);
     const id = crypto.randomUUID();
@@ -55,10 +69,16 @@ export default function App() {
     await createOp(groupId, { type: "set", itemId: id, field: "pos", value: maxPos + 1 });
     setName(""); refresh(); autoSync();
   };
-  const remove = async (id: string) => { await createOp(groupId, { type: "delete", itemId: id }); refresh();autoSync(); };
+  const remove = async (id: string) => {
+    await createOp(groupId, { type: "delete", itemId: id });
+    refresh(); autoSync();
+  };
   const rename = async (id: string) => {
     const v = prompt("New name?");
-    if (v) { await createOp(groupId, { type: "set", itemId: id, field: "name", value: v }); refresh();autoSync(); }
+    if (v) {
+      await createOp(groupId, { type: "set", itemId: id, field: "name", value: v });
+      refresh(); autoSync();
+    }
   };
 
   if (!token) return (
@@ -83,6 +103,16 @@ export default function App() {
   return (
     <div style={{ padding: 20, fontFamily: "sans-serif" }}>
       <h2>SyncList</h2>
+      <p style={{ fontWeight: "bold" }}>
+        {offline ? `! Offline (${pending} pending)` : pending > 0 ? `~ Syncing... (${pending})` : "* Synced"}
+      </p>
+      {offline && (
+        <div style={{ background: "#fde68a", color: "#000", padding: 8 }}>
+          Offline: changes saved locally, will sync later
+        </div>
+      )}
+      <button onClick={toggleOffline}>{offline ? "Go online" : "Simulate offline"}</button>
+      <br /><br />
       <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Add item..." />
       <button onClick={add}>Add</button> <button onClick={sync}>Sync now</button>
       <button onClick={() => { localStorage.removeItem("groupId"); setGroupId(""); }}>Switch list</button>
