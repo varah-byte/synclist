@@ -13,12 +13,15 @@
   "license": "ISC",
   "type": "module",
   "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
     "@types/node": "^26.6.5",
     "@types/pg": "^8.23.1",
     "tsx": "^4.23.15",
     "typescript": "^7.0.2"
   },
   "dependencies": {
+    "@fastify/jwt": "^10.2.4",
+    "bcryptjs": "^3.0.3",
     "dotenv": "^18.0.8",
     "fastify": "^5.12.7",
     "pg": "^8.23.1"
