@@ -2,8 +2,8 @@ import type { Op } from "@synclist/crdt";
 import { db } from "./db";
 import { getOutbox, clearOutbox, saveRemoteOps } from "./store";
 
-export const API = "http://localhost:3000";
-const WS = "ws://localhost:3000";
+export const API = "http://20.207.86.59";
+const WS = "ws://20.207.86.59";
 export const net = { offline: false };
 
 export async function api(path: string, token: string | null, body?: unknown) {
